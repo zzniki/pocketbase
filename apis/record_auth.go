@@ -39,6 +39,7 @@ func bindRecordAuthApi(app core.App, rg *echo.Group) {
 	)
 	subGroup.GET("/auth-methods", api.authMethods)
 	subGroup.POST("/auth-refresh", api.authRefresh, RequireSameContextRecordAuth())
+	subGroup.GET("/check-token", api.authCheckToken, RequireSameContextRecordAuth())
 	subGroup.POST("/auth-with-oauth2", api.authWithOAuth2)
 	subGroup.POST("/auth-with-password", api.authWithPassword)
 	subGroup.POST("/request-password-reset", api.requestPasswordReset)
@@ -69,6 +70,24 @@ func (api *recordAuthApi) authRefresh(c echo.Context) error {
 	return api.app.OnRecordBeforeAuthRefreshRequest().Trigger(event, func(e *core.RecordAuthRefreshEvent) error {
 		return api.app.OnRecordAfterAuthRefreshRequest().Trigger(event, func(e *core.RecordAuthRefreshEvent) error {
 			return RecordAuthResponse(api.app, e.HttpContext, e.Record, nil)
+		})
+	})
+}
+
+func (api *recordAuthApi) authCheckToken(c echo.Context) error {
+	record, _ := c.Get(ContextAuthRecordKey).(*models.Record)
+	if record == nil {
+		return NewNotFoundError("Missing auth record context.", nil)
+	}
+
+	event := new(core.RecordAuthRefreshEvent)
+	event.HttpContext = c
+	event.Collection = record.Collection()
+	event.Record = record
+
+	return api.app.OnRecordBeforeAuthRefreshRequest().Trigger(event, func(e *core.RecordAuthRefreshEvent) error {
+		return api.app.OnRecordAfterAuthRefreshRequest().Trigger(event, func(e *core.RecordAuthRefreshEvent) error {
+			return RecordTokenCheckResponse(api.app, e.HttpContext, e.Record, nil)
 		})
 	})
 }

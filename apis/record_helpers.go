@@ -138,6 +138,18 @@ func RecordAuthResponse(
 	})
 }
 
+func RecordTokenCheckResponse(
+	app core.App,
+	c echo.Context,
+	authRecord *models.Record,
+	meta any,
+	finalizers ...func(token string) error,
+) error {
+	return c.JSON(http.StatusOK, map[string]any{
+		"record": authRecord,
+	})
+}
+
 // EnrichRecord parses the request context and enrich the provided record:
 //   - expands relations (if defaultExpands and/or ?expand query param is set)
 //   - ensures that the emails of the auth record and its expanded auth relations
